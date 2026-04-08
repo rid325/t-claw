@@ -1,47 +1,36 @@
 # T-Claw Architecture
 
-## Overview
+## The Problem
 
-T-Claw integrates TSP identity into OpenClaw agents via the skill system. The core flow is:
+OpenClaw is a powerful AI agent but has no cryptographic identity. When it sends a message, there is no way to verify it actually came from your agent and not an impersonator or a tampered version.
+
+## The Solution
+
+T-Claw adds a TSP (Trust Spanning Protocol) identity layer as an OpenClaw skill. Every message the agent sends is signed with a private key tied to a Verifiable Identifier (VID). Anyone receiving the message can verify the signature using the public key embedded in the VID.
+
+## How it works
 
 ```
-Agent receives trigger phrase
-        │
-        ▼
-OpenClaw loads tsp-identity skill (SKILL.md)
-        │
-        ▼
-Agent calls tsp.js with appropriate command
-        │
-   ┌────┴────┐
-whoami    sign/verify
-   │          │
-   ▼          ▼
-identity.json  Ed25519 crypto (Node built-in)
+User installs tsp-identity skill
+        ↓
+Agent generates Ed25519 keypair on first run
+        ↓
+Agent gets a VID (did:key:...)
+        ↓
+Outgoing messages → signed with private key → TSP envelope
+        ↓
+Receiving agent → verifies signature with public key → trusted
 ```
 
 ## Components
 
-**SKILL.md** — The OpenClaw skill manifest. Defines trigger phrases and plain-English instructions for the agent on when and how to invoke `tsp.js`.
+- SKILL.md — OpenClaw skill definition and trigger phrases
+- tsp.js — Core TSP logic (sign, verify, whoami)
+- identity.json — Agent's keypair and VID (generated locally)
 
-**tsp.js** — Stateless CLI tool implementing three TSP operations:
-- `whoami` — loads or generates the agent's Ed25519 keypair and returns the VID + public key
-- `sign` — signs a message and wraps it in a TSP envelope (sender VID, base64 payload, hex signature, timestamp)
-- `verify` — parses a TSP envelope, reconstructs the public key from the `did:key` VID, and verifies the signature
+## Future work
 
-**identity.json** — Persisted keypair (DER-encoded, hex). Generated on first run. The private key never leaves this file.
-
-## VID scheme
-
-T-Claw uses a simplified `did:key` scheme: `did:key:<hex-encoded SPKI DER public key>`. This is self-contained — the public key is embedded in the VID itself, so verification requires no external registry lookup.
-
-In a production TSP deployment, the VID would be a registered DID resolved via a VID registry, enabling key rotation and revocation.
-
-## TEA Protocol
-
-The TEA (TSP-Enabled AI Agent) pattern demonstrated here:
-
-1. Agent generates identity on first use
-2. Agent signs all outgoing messages with its private key
-3. Receiving agent verifies the signature against the sender's VID
-4. Trust is established without a central authority
+- Integrate official @trustoverip/tsp-sdk
+- Add relationship table (track verified agents)
+- Deploy to Telegram and Discord
+- Package as standalone npm library

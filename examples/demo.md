@@ -1,63 +1,42 @@
 # T-Claw Demo
 
-A quick walkthrough of the tsp-identity skill from the command line.
+## Prerequisites
 
-## 1. Generate identity
+- Node.js v18+
+- OpenClaw installed
 
-```bash
-$ node skills/tsp-identity/tsp.js whoami
-New identity generated and saved to identity.json
-{
-  "vid": "did:key:302a300506032b6570032100...",
-  "publicKey": "302a300506032b6570032100..."
-}
-```
-
-Run it again — same identity is returned from `identity.json`.
-
-## 2. Sign a message
+## Install the skill
 
 ```bash
-$ node skills/tsp-identity/tsp.js sign "Hello from T-Claw"
-{
-  "tsp": "1.0",
-  "sender": "did:key:302a300506032b6570032100...",
-  "payload": "SGVsbG8gZnJvbSBULUNsYXc=",
-  "signature": "a3f9c2...",
-  "timestamp": "2026-04-04T12:00:00.000Z"
-}
+git clone https://github.com/rid325/t-claw
+cp -r t-claw/skills/tsp-identity ~/.openclaw/workspace/skills/
 ```
 
-## 3. Verify the envelope
-
-Copy the JSON output from step 2 and pass it to verify:
+## Run directly
 
 ```bash
-$ node skills/tsp-identity/tsp.js verify '{"tsp":"1.0","sender":"did:key:302a...","payload":"SGVsbG8gZnJvbSBULUNsYXc=","signature":"a3f9c2...","timestamp":"2026-04-04T12:00:00.000Z"}'
-{
-  "valid": true,
-  "sender": "did:key:302a300506032b6570032100...",
-  "message": "Hello from T-Claw",
-  "timestamp": "2026-04-04T12:00:00.000Z"
-}
+# See your agent's identity
+node skills/tsp-identity/tsp.js whoami
+
+# Sign a message
+node skills/tsp-identity/tsp.js sign "Hello from T-Claw"
+
+# Verify a signed message
+node skills/tsp-identity/tsp.js verify '<paste envelope json>'
 ```
 
-## 4. Tamper detection
+## Expected output
 
-If you modify the payload or signature, verify returns `"valid": false`.
+`whoami` returns your agent's VID and public key.
 
-## 5. In-agent usage
+`sign` returns a TSP envelope with sender, payload, signature and timestamp.
 
-With the skill installed in OpenClaw, just say:
+`verify` returns `valid: true` if the signature is genuine.
 
-> "sign this message: Hello from T-Claw"
+## Via OpenClaw chat
 
-The agent will call `tsp.js sign` and return the signed envelope inline.
+Once installed, tell your agent:
 
-> "verify this message: { ... envelope json ... }"
-
-The agent will call `tsp.js verify` and report the result.
-
-> "show my identity"
-
-The agent will call `tsp.js whoami` and display the VID.
+- "sign this message: hello world"
+- "show my identity"
+- "verify this message: \<paste envelope\>"
