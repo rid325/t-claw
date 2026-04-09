@@ -1,48 +1,68 @@
 ---
 name: tsp-identity
-version: 1.0.0
 description: Adds TSP (Trust Spanning Protocol) identity to the agent. Enables signing outgoing messages and verifying incoming ones using a cryptographic keypair tied to a Verified Identity (VID).
-triggers:
-  - "sign this message"
-  - "sign message"
-  - "verify this message"
-  - "verify message"
-  - "show my identity"
-  - "who am i"
-  - "what is my VID"
-  - "my identity"
-dependencies:
-  - tsp.js
+metadata: >
+  {
+    "openclaw": {
+      "always": true,
+      "skillKey": "tsp-identity",
+      "emoji": "🔐",
+      "userInvocable": true
+    }
+  }
 ---
 
 # TSP Identity Skill
 
-This skill gives the agent a TSP identity. It can sign outgoing messages so recipients can verify they came from this agent, and verify incoming messages to confirm they came from a trusted sender.
+This skill gives the agent a TSP (Trust Spanning Protocol) identity. Use it to sign outgoing messages and verify incoming ones using a cryptographic keypair.
 
-## What is TSP?
+## When to use this skill
 
-The Trust Spanning Protocol (TSP) is a ToIP (Trust over IP) standard for secure, identity-bound messaging between agents. Each agent has a Verified Identity (VID) backed by a cryptographic keypair. Messages are signed with the private key and verified with the public key.
+Use this skill whenever the user asks about:
+- Their identity, VID, or public key
+- Signing a message
+- Verifying a signed message
+- TSP, Trust Spanning Protocol, or cryptographic identity
 
-## Behavior
+## How to invoke
 
-When the user says something matching a trigger phrase, the agent should:
+This skill works by running `tsp.js` via the shell. The script is at:
+`~/.openclaw/workspace/skills/tsp-identity/tsp.js`
 
-### "sign this message" / "sign message"
-1. Take the message content provided by the user (or the last message in context).
-2. Call `tsp.js sign "<message>"` to produce a signed TSP envelope.
-3. Return the signed envelope to the user, explaining that it is now cryptographically bound to this agent's VID.
+### Show identity (whoami)
 
-### "verify this message" / "verify message"
-1. Take the signed envelope provided by the user.
-2. Call `tsp.js verify "<signed_envelope>"` to check the signature.
-3. Report whether the signature is valid or invalid, and which VID it belongs to.
+When the user says "show my identity", "who am i", "what is my VID", or similar:
 
-### "show my identity" / "who am i" / "what is my VID" / "my identity"
-1. Call `tsp.js whoami` to retrieve the agent's public VID and public key.
-2. Present the VID and public key to the user in a readable format.
+Run this shell command and show the output:
+```
+node ~/.openclaw/workspace/skills/tsp-identity/tsp.js whoami
+```
+
+### Sign a message
+
+When the user says "sign this message: <text>" or "sign <text>":
+
+Run this shell command and show the output:
+```
+node ~/.openclaw/workspace/skills/tsp-identity/tsp.js sign "<message text>"
+```
+
+### Verify a message
+
+When the user says "verify this message: <envelope>" or pastes a TSP envelope JSON:
+
+Run this shell command and show the output:
+```
+node ~/.openclaw/workspace/skills/tsp-identity/tsp.js verify '<envelope json>'
+```
+
+## Output format
+
+- `whoami` returns the agent's VID (did:key:...) and public key hex
+- `sign` returns a TSP envelope with sender, payload, signature, and timestamp
+- `verify` returns valid: true/false, the sender VID, and the original message
 
 ## Notes
 
-- The keypair is generated once and stored in `identity.json` in the skill directory. Do not share the private key.
-- This is a demonstration implementation of the TEA (TSP-Enabled AI Agent) protocol. It is not production-hardened.
-- In a full TSP deployment, the VID would be registered with a VID registry and the public key published for discovery.
+- The keypair is generated on first run and saved to `identity.json` in the skill directory
+- This is a TEA (TSP-Enabled AI Agent) demonstration — not production-hardened
