@@ -1,20 +1,32 @@
 # T-Claw
 
-T-Claw adds **TSP (Trust Spanning Protocol)** identity to [OpenClaw](https://github.com/openclaw), an open source AI agent framework.
-
-It is a reference implementation of the **TEA (TSP-Enabled AI Agent)** protocol — demonstrating how an AI agent can sign outgoing messages and verify incoming ones using a cryptographic identity anchored to a Verified Identity (VID).
+T-Claw adds TSP (Trust Spanning Protocol) identity to [OpenClaw](https://github.com/openclaw), an open source AI agent framework. It is a reference implementation of the TEA (TSP-Enabled AI Agent) protocol.
 
 ---
 
-## What problem does it solve?
+## Demo
 
-AI agents increasingly communicate with each other and with humans across trust boundaries. Without identity, there is no way to know:
+![T-Claw demo — whoami, sign, and verify](examples/demo.png)
 
-- Did this message actually come from the agent it claims to be from?
-- Has the message been tampered with in transit?
-- Which agent is accountable for this action?
+The demo shows all three operations running end-to-end: generating a VID, signing a message, and verifying the signature returns `valid: true`.
 
-TSP solves this by giving each agent a **VID (Verified Identity)** backed by an Ed25519 keypair. Every outgoing message is signed; every incoming message can be verified. T-Claw wires this into OpenClaw's skill system so any agent can opt in with a single skill install.
+---
+
+## The problem
+
+AI agents have no cryptographic identity by default. When an agent sends a message, there is no way to prove it actually came from that agent and wasn't spoofed or tampered with in transit.
+
+TSP fixes this. Each agent gets a VID (Verified Identity) backed by an Ed25519 keypair. Outgoing messages are signed with the private key. Anyone receiving the message can verify the signature using the public key embedded in the VID — no central authority needed.
+
+---
+
+## How it works
+
+T-Claw wires TSP into OpenClaw's skill system. Install the skill, and your agent can:
+
+- prove its identity with a `did:key` VID
+- sign any outgoing message into a TSP envelope
+- verify any incoming TSP envelope
 
 ---
 
@@ -24,60 +36,56 @@ TSP solves this by giving each agent a **VID (Verified Identity)** backed by an 
 t-claw/
 ├── skills/
 │   └── tsp-identity/
-│       ├── SKILL.md      ← OpenClaw skill definition
-│       └── tsp.js        ← TSP sign/verify/whoami logic
+│       ├── SKILL.md      ← OpenClaw skill definition and instructions
+│       └── tsp.js        ← TSP sign/verify/whoami logic (no dependencies)
 ├── docs/
 │   └── architecture.md
 ├── examples/
-│   └── demo.md
+│   ├── demo.md
+│   └── demo.png          ← end-to-end terminal demo
 └── README.md
 ```
 
 ---
 
-## Installing the skill into OpenClaw
-
-1. Clone this repo into your OpenClaw skills directory:
+## Install
 
 ```bash
-git clone https://github.com/your-org/t-claw
-cp -r t-claw/skills/tsp-identity /path/to/openclaw/skills/
+git clone https://github.com/rid325/t-claw
+cp -r t-claw/skills/tsp-identity ~/.openclaw/workspace/skills/
 ```
 
-2. No npm install needed — `tsp.js` uses only Node.js built-in modules.
-
-3. OpenClaw will auto-discover the skill via `SKILL.md`. Restart your agent to load it.
+No npm install needed — `tsp.js` uses only Node.js built-in modules. Restart OpenClaw and the skill is live.
 
 ---
 
-## Using the skill
+## Usage
 
-Once installed, the agent responds to these trigger phrases:
-
-| Phrase | Action |
-|---|---|
-| `show my identity` | Prints the agent's VID and public key |
-| `sign this message` | Signs the provided message and returns a TSP envelope |
-| `verify this message` | Verifies a TSP envelope and reports validity |
-
-You can also call `tsp.js` directly from the command line:
+Run directly from the terminal:
 
 ```bash
-# Generate identity and print VID
+# Show your agent's VID and public key
 node skills/tsp-identity/tsp.js whoami
 
 # Sign a message
 node skills/tsp-identity/tsp.js sign "Hello from T-Claw"
 
-# Verify a signed envelope (paste the JSON output from sign)
-node skills/tsp-identity/tsp.js verify '{"tsp":"1.0","sender":"did:key:...","payload":"...","signature":"...","timestamp":"..."}'
+# Verify a signed envelope
+ENVELOPE=$(node skills/tsp-identity/tsp.js sign "Hello from T-Claw")
+node skills/tsp-identity/tsp.js verify "$ENVELOPE"
 ```
+
+Or via OpenClaw chat once the skill is loaded:
+
+- `show my TSP identity`
+- `sign this message: hello world`
+- `verify this message: <paste envelope JSON>`
 
 ---
 
-## TSP SDK note
+## Implementation note
 
-This implementation uses Node.js built-in `crypto` (Ed25519) to demonstrate TSP concepts. The official `@trustoverip/tsp-sdk` package from the [Trust over IP Foundation](https://trustoverip.org) is in active development. When it ships, `tsp.js` can be updated to use it as a drop-in replacement — the interface (sign, verify, whoami) stays the same.
+`tsp.js` uses Node.js built-in `crypto` (Ed25519) to implement TSP concepts. The official `@trustoverip/tsp-sdk` from the [Trust over IP Foundation](https://trustoverip.org) is in active development. When it ships, `tsp.js` can swap it in as a drop-in — the interface stays the same.
 
 ---
 
